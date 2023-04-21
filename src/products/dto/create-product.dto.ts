@@ -18,7 +18,8 @@ const CreateProductSchema = z.object({
         return Buffer.byteLength(value, 'base64') <= 1024 * 1024 * 5;
       },
       { message: 'A foto deve ter no máximo 5MB' },
-    ),
+    )
+    .optional(),
 });
 
 export class CreateProductDto extends createZodDto(CreateProductSchema) {}
