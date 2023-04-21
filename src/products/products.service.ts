@@ -1,26 +1,68 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { InjectModel } from '@nestjs/mongoose';
+import { Product } from './entities/product.entity';
+import { Model } from 'mongoose';
+import { PaginationDto } from './dto/pagination.dto';
 
 @Injectable()
 export class ProductsService {
-  create(createProductDto: CreateProductDto) {
-    return 'This action adds a new product';
+  constructor(
+    @InjectModel(Product.name) private productModel: Model<Product>,
+  ) {}
+
+  async create(createProductDto: CreateProductDto) {
+    const product = await this.productModel.create(createProductDto);
+
+    if (!product) {
+      throw new HttpException('Erro ao criar produto', 400);
+    }
+
+    return product;
   }
 
-  findAll() {
-    return `This action returns all products`;
+  async findAll(pagination: PaginationDto) {
+    const page = pagination.page || 1;
+    const limit = pagination.limit || 10;
+
+    const data = await this.productModel
+      .find()
+      .skip(page > 1 ? (page - 1) * limit : 0)
+      .limit(limit);
+
+    const count = await this.productModel.count();
+    const pages = Math.ceil(count / limit);
+
+    return {
+      data,
+      pagination: {
+        current: page,
+        next: page < pages ? page + 1 : undefined,
+        total: pages,
+      },
+    };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} product`;
+  findOne(id: string) {
+    return this.productModel.findById(id);
   }
 
-  update(id: number, updateProductDto: UpdateProductDto) {
-    return `This action updates a #${id} product`;
+  update(id: string, updateProductDto: UpdateProductDto) {
+    return this.productModel.findByIdAndUpdate(id, updateProductDto, {
+      new: true,
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} product`;
+  async remove(id: string) {
+    const product = await this.productModel.findById(id);
+
+    if (!product) {
+      throw new HttpException('Produto não encontrado', 404);
+    }
+
+    product.deleteOne();
+
+    return { message: 'Produto removido com sucesso' };
   }
 }
