@@ -49,9 +49,18 @@ export class ProductsService {
   }
 
   update(id: string, updateProductDto: UpdateProductDto) {
-    return this.productModel.findByIdAndUpdate(id, updateProductDto, {
-      new: true,
-    });
+    return this.productModel.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          ...updateProductDto,
+          updatedAt: Date.now(),
+        },
+      },
+      {
+        new: true,
+      },
+    );
   }
 
   async remove(id: string) {
