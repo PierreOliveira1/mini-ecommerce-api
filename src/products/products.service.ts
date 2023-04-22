@@ -4,7 +4,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Product } from './entities/product.entity';
 import { Model } from 'mongoose';
-import { PaginationDto } from './dto/pagination.dto';
+import { PaginationDto } from '@dto/pagination.dto';
 
 @Injectable()
 export class ProductsService {
