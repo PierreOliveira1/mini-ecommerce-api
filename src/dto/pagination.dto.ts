@@ -6,10 +6,7 @@ const PaginationSchema = z.object({
     .preprocess((value: string) => Number(value), z.number().min(0))
     .optional(),
   limit: z
-    .preprocess(
-      (value: string) => Number(value),
-      z.number().min(1).max(100).optional(),
-    )
+    .preprocess((value: string) => Number(value), z.number().min(1).max(100))
     .optional(),
 });
 
