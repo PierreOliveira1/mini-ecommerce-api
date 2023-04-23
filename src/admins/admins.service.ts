@@ -5,14 +5,59 @@ import { Admin } from './entities/admin.entity';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { PaginationDto } from '@dto/pagination.dto';
+import { AuthAdminDto } from './dto/auth-admin.dto';
+import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class AdminsService {
-  constructor(@InjectModel(Admin.name) private adminModel: Model<Admin>) {}
+  constructor(
+    @InjectModel(Admin.name) private adminModel: Model<Admin>,
+    private jwtService: JwtService,
+  ) {}
+
+  async auth(authAdminDto: AuthAdminDto) {
+    try {
+      const foundAdmin = await this.adminModel.findOne({
+        email: authAdminDto.email,
+      });
+
+      if (!foundAdmin) {
+        throw new HttpException({ message: 'Email ou senha inválida' }, 400);
+      }
+
+      const isPasswordValid = bcrypt.compareSync(
+        authAdminDto.password,
+        foundAdmin.password,
+      );
+
+      if (!isPasswordValid) {
+        throw new HttpException({ message: 'Email ou senha inválida' }, 400);
+      }
+
+      const token = this.jwtService.sign({ id: foundAdmin._id });
+
+      return {
+        message: 'Autenticado com sucesso',
+        token,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new HttpException(
+        {
+          message: 'Erro ao fazer login',
+        },
+        500,
+      );
+    }
+  }
 
   async create(createAdminDto: CreateAdminDto) {
     try {
-      const adminAlreadyExists = this.adminModel.findOne({
+      const adminAlreadyExists = await this.adminModel.findOne({
         email: createAdminDto.email,
       });
 
@@ -51,6 +96,7 @@ export class AdminsService {
 
       const data = await this.adminModel
         .find()
+        .select('-password')
         .skip(page > 1 ? (page - 1) * limit : 0)
         .limit(limit);
 
@@ -77,7 +123,9 @@ export class AdminsService {
 
   async findOne(id: string) {
     try {
-      const admin = await this.adminModel.findOne({ _id: id });
+      const admin = await this.adminModel
+        .findOne({ _id: id })
+        .select('-password');
 
       if (!admin) {
         throw new HttpException(
@@ -105,18 +153,20 @@ export class AdminsService {
 
   async update(id: string, updateAdminDto: UpdateAdminDto) {
     try {
-      const admin = await this.adminModel.findByIdAndUpdate(
-        id,
-        {
-          $set: {
-            ...updateAdminDto,
-            updatedAt: Date.now(),
+      const admin = await this.adminModel
+        .findByIdAndUpdate(
+          id,
+          {
+            $set: {
+              ...updateAdminDto,
+              updatedAt: Date.now(),
+            },
           },
-        },
-        {
-          new: true,
-        },
-      );
+          {
+            new: true,
+          },
+        )
+        .select('-password');
 
       if (!admin) {
         throw new HttpException(
