@@ -21,10 +21,6 @@ export class Admin {
 
   @Prop({ default: Date.now })
   updatedAt: Date;
-
-  comparePassword(password: string): boolean {
-    return bcrypt.compareSync(password, this.password);
-  }
 }
 
 export const AdminSchema = SchemaFactory.createForClass(Admin);
